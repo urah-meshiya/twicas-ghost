@@ -11,6 +11,19 @@ html, body {
   height: 260px;
 }
 
+#status {
+  position: absolute;
+  bottom: -6px;
+  left: 10px;
+  background: rgba(60, 60, 80, 0.75);
+  color: #fff;
+  font-family: "Hiragino Sans", "Yu Gothic", sans-serif;
+  font-size: 12px;
+  padding: 3px 10px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
 #ghost {
   position: absolute;
   bottom: 0;

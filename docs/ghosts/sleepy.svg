@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 220">
+  <path d="M100 10 C50 10 20 50 20 100 L20 190
+           C20 190 35 175 50 190
+           C65 205 75 175 90 190
+           C105 205 115 175 130 190
+           C145 205 155 175 170 190
+           C170 190 180 190 180 190
+           L180 100 C180 50 150 10 100 10 Z"
+        fill="#eef0ff" stroke="#c3c8ee" stroke-width="3"/>
+  <path d="M62 97 Q72 92 82 97" stroke="#3a3a55" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <path d="M118 97 Q128 92 138 97" stroke="#3a3a55" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <ellipse cx="100" cy="128" rx="8" ry="6" fill="#3a3a55"/>
+  <text x="140" y="55" font-size="22" fill="#8890c8">Z</text>
+  <text x="155" y="35" font-size="16" fill="#8890c8">z</text>
+</svg>

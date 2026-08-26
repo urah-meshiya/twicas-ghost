@@ -2,11 +2,23 @@
   const cfg = window.TWICAS_GHOST_CONFIG;
   const rules = window.TWICAS_GHOST_RULES || [];
   const defaultRule = window.TWICAS_GHOST_DEFAULT || { mood: "idle", replies: [""] };
+  const firstTimeRule = window.TWICAS_GHOST_FIRST_TIME || defaultRule;
+  const idleRule = window.TWICAS_GHOST_IDLE_LINES || defaultRule;
 
   const ghostEl = document.getElementById("ghost");
   const bubbleEl = document.getElementById("bubble");
 
   let hideTimer = null;
+  let idleTimer = null;
+  let lastLine = "";
+
+  // 初見さん判定用。ブラウザに保存されるので配信をまたいでも覚えている
+  const SEEN_KEY = "twicasGhostSeenUsers";
+  const seenUsers = new Set(JSON.parse(localStorage.getItem(SEEN_KEY) || "[]"));
+
+  function saveSeenUsers() {
+    localStorage.setItem(SEEN_KEY, JSON.stringify([...seenUsers]));
+  }
 
   function pickReaction(message) {
     const lower = message || "";
@@ -19,11 +31,14 @@
   }
 
   function pickRandom(arr) {
-    return arr[Math.floor(Math.random() * arr.length)];
+    // 直前と同じセリフを避ける
+    const candidates = arr.length > 1 ? arr.filter((line) => line !== lastLine) : arr;
+    const line = candidates[Math.floor(Math.random() * candidates.length)];
+    lastLine = line;
+    return line;
   }
 
-  function react(comment) {
-    const rule = pickReaction(comment.message);
+  function show(rule) {
     const line = pickRandom(rule.replies);
 
     ghostEl.src = `ghosts/${rule.mood}.svg`;
@@ -31,7 +46,6 @@
 
     bubbleEl.textContent = line;
     bubbleEl.classList.remove("hidden");
-    // reflow を挟んでからvisibleを付けるとフェードが効く
     requestAnimationFrame(() => bubbleEl.classList.add("visible"));
 
     clearTimeout(hideTimer);
@@ -45,12 +59,37 @@
     }, cfg.bubbleDurationMs);
   }
 
+  function resetIdleTimer() {
+    clearTimeout(idleTimer);
+    const threshold = cfg.idleThresholdMs || 90000;
+    idleTimer = setTimeout(() => {
+      show(idleRule);
+      resetIdleTimer(); // 次のアイドル発言も予約
+    }, threshold);
+  }
+
+  function react(comment) {
+    resetIdleTimer();
+
+    const isFirstTime = comment.from && !seenUsers.has(comment.from);
+    if (isFirstTime && cfg.enableFirstTimeGreeting !== false) {
+      seenUsers.add(comment.from);
+      saveSeenUsers();
+      show(firstTimeRule);
+      return;
+    }
+    if (comment.from) seenUsers.add(comment.from);
+
+    show(pickReaction(comment.message));
+  }
+
   function connect() {
     const url = `${cfg.workerUrl}?screen_id=${encodeURIComponent(cfg.screenId)}`;
     const ws = new WebSocket(url);
 
     ws.addEventListener("open", () => {
       console.log("[twicas-ghost] connected");
+      resetIdleTimer();
     });
 
     ws.addEventListener("message", (event) => {
@@ -58,6 +97,15 @@
         const data = JSON.parse(event.data);
         if (data.type === "comment") {
           react(data);
+        } else if (data.type === "status") {
+          const statusEl = document.getElementById("status");
+          if (data.live) {
+            statusEl.classList.add("hidden");
+            resetIdleTimer();
+          } else {
+            statusEl.classList.remove("hidden");
+            clearTimeout(idleTimer); // 配信外は独り言もしない
+          }
         } else if (data.type === "error") {
           console.warn("[twicas-ghost] server error:", data.message);
         }
@@ -68,6 +116,7 @@
 
     ws.addEventListener("close", () => {
       console.log("[twicas-ghost] disconnected, retrying in 5s");
+      clearTimeout(idleTimer);
       setTimeout(connect, 5000);
     });
 
