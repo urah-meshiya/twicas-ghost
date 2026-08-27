@@ -8,7 +8,7 @@ html, body {
 #stage {
   position: relative;
   width: 240px;
-  height: 260px;
+  height: 300px;
 }
 
 #status {
@@ -45,7 +45,7 @@ html, body {
 
 #bubble {
   position: absolute;
-  top: -10px;
+  top: 20px;
   left: 30px;
   max-width: 220px;
   background: #ffffff;
