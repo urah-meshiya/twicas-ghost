@@ -42,11 +42,12 @@ export class TwicasWatcher {
   }
 
   async alarm() {
-    try {
-      if (this.sessions.size === 0) {
-        return;
-      }
+    if (this.sessions.size === 0) {
+      // 誰も見ていない → ポーリングを停止(alarmを再セットしない)
+      return;
+    }
 
+    try {
       const screenId = this.screenId || (await this.state.storage.get("screen_id"));
       if (!screenId) return;
       await this.state.storage.put("screen_id", screenId);
@@ -94,7 +95,10 @@ export class TwicasWatcher {
     } catch (err) {
       this.broadcast({ type: "error", message: String(err) });
     } finally {
-      await this.state.storage.setAlarm(Date.now() + 5000);
+      // sessionsが残っている場合のみ次のalarmをセット
+      if (this.sessions.size > 0) {
+        await this.state.storage.setAlarm(Date.now() + 5000);
+      }
     }
   }
 
