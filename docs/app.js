@@ -12,12 +12,15 @@
   let idleTimer = null;
   let lastLine = "";
 
-  // 初見さん判定用。ブラウザに保存されるので配信をまたいでも覚えている
-  const SEEN_KEY = "twicasGhostSeenUsers";
-  const seenUsers = new Set(JSON.parse(localStorage.getItem(SEEN_KEY) || "[]"));
+  // 初見判定
+  function react(comment) {
+    resetIdleTimer();
 
-  function saveSeenUsers() {
-    localStorage.setItem(SEEN_KEY, JSON.stringify([...seenUsers]));
+    if (comment.isFirstTime && cfg.enableFirstTimeGreeting !== false) {
+      show(firstTimeRule);
+      return;
+    }
+    show(pickReaction(comment.message));
   }
 
   function pickReaction(message) {

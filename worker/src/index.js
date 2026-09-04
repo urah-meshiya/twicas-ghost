@@ -101,6 +101,15 @@ export class TwicasWatcher {
       }
     }
   }
+  
+  async getSeenUsers() {
+    const arr = await this.state.storage.get("seenUsers");
+    return new Set(arr || []);
+  }
+
+  async saveSeenUsers(set) {
+    await this.state.storage.put("seenUsers", [...set]);
+  }
 
   async pollComments(movieId, commonHeaders) {
     const sliceId = await this.state.storage.get("slice_id");
@@ -115,21 +124,35 @@ export class TwicasWatcher {
 
     const data = await res.json();
     const comments = (data.comments || []).slice().reverse();
+    if (comments.length === 0) return;
+
+    const seenUsers = await this.getSeenUsers();
+    let changed = false;
 
     for (const c of comments) {
+      // 表示名(name)は変更されうるので、識別にはscreen_idを優先
+      const userKey = c.from_user ? (c.from_user.screen_id || c.from_user.name) : null;
+      const isFirstTime = !!userKey && !seenUsers.has(userKey);
+
+      if (isFirstTime) {
+        seenUsers.add(userKey);
+        changed = true;
+      }
+
       this.broadcast({
         type: "comment",
         id: c.id,
         from: c.from_user ? c.from_user.name || c.from_user.screen_id : "名無し",
         message: c.message,
         createdAt: c.created,
+        isFirstTime,
       });
     }
 
-    if (comments.length > 0) {
-      const lastId = comments[comments.length - 1].id;
-      await this.state.storage.put("slice_id", lastId);
-    }
+    if (changed) await this.saveSeenUsers(seenUsers);
+
+    const lastId = comments[comments.length - 1].id;
+    await this.state.storage.put("slice_id", lastId);
   }
 
   broadcast(payload) {
