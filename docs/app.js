@@ -12,15 +12,30 @@
   let idleTimer = null;
   let lastLine = "";
 
-  // 初見判定
+  const userRules = window.TWICAS_GHOST_USER_RULES || {};
+
+  function pickUserRule(comment) {
+    if (comment.fromId && userRules[comment.fromId]) return userRules[comment.fromId];
+    if (comment.from && userRules[comment.from]) return userRules[comment.from];
+    return null;
+  }
+
   function react(comment) {
     resetIdleTimer();
+    const name = comment.from || "名無し";
 
-    if (comment.isFirstTime && cfg.enableFirstTimeGreeting !== false) {
-      show(firstTimeRule);
+    const userRule = pickUserRule(comment);
+    if (userRule) {
+      show(userRule, name);
       return;
     }
-    show(pickReaction(comment.message));
+
+    if (comment.isFirstTime && cfg.enableFirstTimeGreeting !== false) {
+      show(firstTimeRule, name);
+      return;
+    }
+
+    show(pickReaction(comment.message), name);
   }
 
   function pickReaction(message) {
@@ -41,8 +56,11 @@
     return line;
   }
 
-  function show(rule) {
-    const line = pickRandom(rule.replies);
+  function show(rule, name) {
+    let line = pickRandom(rule.replies);
+    if (line.includes("{name}")) {
+      line = line.replace(/{name}/g, name || "名無し");
+    }
 
     ghostEl.src = `ghosts/${rule.mood}.svg`;
     ghostEl.classList.add("reacting");
@@ -69,21 +87,6 @@
       show(idleRule);
       resetIdleTimer(); // 次のアイドル発言も予約
     }, threshold);
-  }
-
-  function react(comment) {
-    resetIdleTimer();
-
-    const isFirstTime = comment.from && !seenUsers.has(comment.from);
-    if (isFirstTime && cfg.enableFirstTimeGreeting !== false) {
-      seenUsers.add(comment.from);
-      saveSeenUsers();
-      show(firstTimeRule);
-      return;
-    }
-    if (comment.from) seenUsers.add(comment.from);
-
-    show(pickReaction(comment.message));
   }
 
   function connect() {

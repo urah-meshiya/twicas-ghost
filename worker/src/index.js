@@ -143,6 +143,7 @@ export class TwicasWatcher {
         type: "comment",
         id: c.id,
         from: c.from_user ? c.from_user.name || c.from_user.screen_id : "名無し",
+        fromId: c.from_user ? c.from_user.screen_id : null,
         message: c.message,
         createdAt: c.created,
         isFirstTime,
